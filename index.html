@@ -3,153 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>宇宙最速タイピング - 覚醒版</title>
+    <title>Cosmic Descent - 宇宙船ミッション</title>
     <style>
         body {
-            background-color: #000510;
+            background: radial-gradient(circle at center, #001530 0%, #000510 100%);
             color: #00f2ff;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
-            margin: 0;
-            overflow: hidden;
-            transition: background-color 0.1s;
         }
-        #game-container {
+
+        /* 動く星空 */
+        #stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: transparent;
+        }
+
+        /* 宇宙船 */
+        #spaceship {
+            font-size: 5rem;
+            position: absolute;
+            bottom: 20%;
+            transition: transform 0.1s, bottom 0.5s;
+            z-index: 10;
+            filter: drop-shadow(0 0 15px #00f2ff);
+        }
+
+        /* 惑星（最初は遠くに） */
+        #planet {
+            position: absolute;
+            top: -200px;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle at 30% 30%, #4facfe 0%, #00f2ff 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 50px rgba(79, 172, 254, 0.5);
+            transition: top 1s, transform 1s;
+            z-index: 1;
+        }
+
+        #game-ui {
             text-align: center;
-            border: 2px solid #00f2ff;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 0 20px #00f2ff;
-            background: rgba(0, 0, 0, 0.8);
-            position: relative;
+            z-index: 20;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 30px;
+            border-radius: 30px;
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            backdrop-filter: blur(10px);
         }
+
         #word-display {
-            font-size: 4rem;
-            margin-bottom: 10px;
-            text-shadow: 0 0 15px #00f2ff;
-            letter-spacing: 5px;
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin: 20px 0;
+            text-shadow: 0 0 20px #00f2ff;
         }
-        /* 打った文字とこれからの文字の色分け */
-        .typed { color: #ff00de; text-shadow: 0 0 10px #ff00de; }
-        .untyped { color: #00f2ff; }
 
-        #timer { font-size: 1.5rem; color: #ff00de; }
-        #score { font-size: 1.2rem; margin-top: 10px; }
-
-        /* 一文字正解：青いフラッシュ */
-        .correct-key { background-color: rgba(0, 242, 255, 0.2); }
-
-        /* 全問正解：虹色派手フラッシュ */
-        @keyframes rainbow-flash {
-            0% { background-color: #ff0000; transform: scale(1.05); }
-            20% { background-color: #ff00de; transform: scale(0.95); }
-            40% { background-color: #00f2ff; transform: scale(1.05); }
-            60% { background-color: #00ff00; transform: scale(0.95); }
-            80% { background-color: #ffff00; transform: scale(1.05); }
-            100% { background-color: #000510; transform: scale(1); }
-        }
-        .word-complete { animation: rainbow-flash 0.4s ease-out; }
-    </style>
-</head>
-<body>
-
-    <div id="game-container">
-        <div id="timer">残り時間: 30秒</div>
-        <div id="word-display">Tap to Start</div>
-        <div id="score">スコア: 0</div>
-    </div>
-
-    <input type="text" id="mobile-input" style="opacity: 0; position: absolute; top: 0;">
-
-    <script>
-        const words = ["apple", "banana", "galaxy", "supernova", "nebula", "javascript", "coding", "universe", "future", "star", "planet", "rocket", "comet", "astronaut", "satellite"];
+        .typed { color: #ff00de; }
         
-        let currentWord = "";
-        let typedPart = "";
-        let untypedPart = "";
-        let score = 0;
-        let timeLeft = 30;
-        let isPlaying = false;
-        let timerId;
+        #timer { color: #ff00de; font-size: 1.8rem; font-weight: bold; }
+        #distance { font-size: 1.2rem; margin-top: 10px; color: #aaa; }
 
-        const wordDisplay = document.getElementById('word-display');
-        const timerDisplay = document.getElementById('timer');
-        const scoreDisplay = document.getElementById('score');
-        const mobileInput = document.getElementById('mobile-input');
-
-        function startGame() {
-            if (isPlaying) return;
-            isPlaying = true;
-            score = 0;
-            timeLeft = 30;
-            scoreDisplay.textContent = `スコア: ${score}`;
-            nextWord();
-            
-            timerId = setInterval(() => {
-                timeLeft--;
-                timerDisplay.textContent = `残り時間: ${timeLeft}秒`;
-                if (timeLeft <= 0) endGame();
-            }, 1000);
-        }
-
-        function nextWord() {
-            currentWord = words[Math.floor(Math.random() * words.length)];
-            typedPart = "";
-            untypedPart = currentWord;
-            updateDisplay();
-        }
-
-        function updateDisplay() {
-            wordDisplay.innerHTML = `<span class="typed">${typedPart}</span><span class="untyped">${untypedPart}</span>`;
-        }
-
-        function checkInput(key) {
-            if (!isPlaying) return;
-            
-            if (key === untypedPart[0]) {
-                typedPart += untypedPart[0];
-                untypedPart = untypedPart.substring(1);
-                
-                if (untypedPart === "") {
-                    // ★全問正解！ド派手な演出
-                    score += 10;
-                    scoreDisplay.textContent = `スコア: ${score}`;
-                    document.body.classList.add('word-complete');
-                    setTimeout(() => {
-                        document.body.classList.remove('word-complete');
-                        nextWord();
-                    }, 400);
-                } else {
-                    // ★一文字正解！青い光
-                    updateDisplay();
-                    document.body.classList.add('correct-key');
-                    setTimeout(() => document.body.classList.remove('correct-key'), 100);
-                }
-            }
-        }
-
-        function endGame() {
-            clearInterval(timerId);
-            isPlaying = false;
-            wordDisplay.textContent = "GAME OVER";
-            alert(`終了！スコアは ${score} でした！`);
-        }
-
-        document.addEventListener('click', () => {
-            mobileInput.focus();
-            if (!isPlaying) startGame();
-        });
-
-        document.addEventListener('keydown', (e) => checkInput(e.key.toLowerCase()));
-        mobileInput.addEventListener('input', (e) => {
-            const val = e.target.value.slice(-1).toLowerCase();
-            checkInput(val);
-            e.target.value = '';
-        });
-    </script>
-</body>
-</html>
+        /* 加速エフェクト */
+        .boost { animation: shake 0.2s infinite; }
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate
