@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>宇宙最速タイピング</title>
+    <title>宇宙最速タイピング - 覚醒版</title>
     <style>
         body {
-            background-color: #000510; /* 深い宇宙の青 */
-            color: #00f2ff; /* ネオンブルー */
+            background-color: #000510;
+            color: #00f2ff;
             font-family: 'Courier New', Courier, monospace;
             display: flex;
             flex-direction: column;
@@ -16,6 +16,7 @@
             height: 100vh;
             margin: 0;
             overflow: hidden;
+            transition: background-color 0.1s;
         }
         #game-container {
             text-align: center;
@@ -24,28 +25,34 @@
             border-radius: 20px;
             box-shadow: 0 0 20px #00f2ff;
             background: rgba(0, 0, 0, 0.8);
+            position: relative;
         }
         #word-display {
-            font-size: 3rem;
+            font-size: 4rem;
             margin-bottom: 10px;
-            text-shadow: 0 0 10px #00f2ff;
+            text-shadow: 0 0 15px #00f2ff;
+            letter-spacing: 5px;
         }
-        #timer {
-            font-size: 1.5rem;
-            color: #ff00de; /* ネオンピンク */
+        /* 打った文字とこれからの文字の色分け */
+        .typed { color: #ff00de; text-shadow: 0 0 10px #ff00de; }
+        .untyped { color: #00f2ff; }
+
+        #timer { font-size: 1.5rem; color: #ff00de; }
+        #score { font-size: 1.2rem; margin-top: 10px; }
+
+        /* 一文字正解：青いフラッシュ */
+        .correct-key { background-color: rgba(0, 242, 255, 0.2); }
+
+        /* 全問正解：虹色派手フラッシュ */
+        @keyframes rainbow-flash {
+            0% { background-color: #ff0000; transform: scale(1.05); }
+            20% { background-color: #ff00de; transform: scale(0.95); }
+            40% { background-color: #00f2ff; transform: scale(1.05); }
+            60% { background-color: #00ff00; transform: scale(0.95); }
+            80% { background-color: #ffff00; transform: scale(1.05); }
+            100% { background-color: #000510; transform: scale(1); }
         }
-        #score {
-            font-size: 1.2rem;
-            margin-top: 10px;
-        }
-        /* 正解したときのエフェクト */
-        .flash {
-            animation: blink 0.2s;
-        }
-        @keyframes blink {
-            0% { background-color: rgba(0, 242, 255, 0.3); }
-            100% { background-color: transparent; }
-        }
+        .word-complete { animation: rainbow-flash 0.4s ease-out; }
     </style>
 </head>
 <body>
@@ -59,12 +66,11 @@
     <input type="text" id="mobile-input" style="opacity: 0; position: absolute; top: 0;">
 
     <script>
-        const words = [
-            "apple", "banana", "galaxy", "supernova", "nebula", 
-            "javascript", "coding", "universe", "future", "star"
-        ];
+        const words = ["apple", "banana", "galaxy", "supernova", "nebula", "javascript", "coding", "universe", "future", "star", "planet", "rocket", "comet", "astronaut", "satellite"];
         
         let currentWord = "";
+        let typedPart = "";
+        let untypedPart = "";
         let score = 0;
         let timeLeft = 30;
         let isPlaying = false;
@@ -86,30 +92,42 @@
             timerId = setInterval(() => {
                 timeLeft--;
                 timerDisplay.textContent = `残り時間: ${timeLeft}秒`;
-                if (timeLeft <= 0) {
-                    endGame();
-                }
+                if (timeLeft <= 0) endGame();
             }, 1000);
         }
 
         function nextWord() {
             currentWord = words[Math.floor(Math.random() * words.length)];
-            wordDisplay.textContent = currentWord;
+            typedPart = "";
+            untypedPart = currentWord;
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            wordDisplay.innerHTML = `<span class="typed">${typedPart}</span><span class="untyped">${untypedPart}</span>`;
         }
 
         function checkInput(key) {
             if (!isPlaying) return;
-            if (key === currentWord[0]) {
-                currentWord = currentWord.substring(1);
-                wordDisplay.textContent = currentWord;
-                // 正解エフェクト
-                document.body.classList.add('flash');
-                setTimeout(() => document.body.classList.remove('flash'), 200);
-
-                if (currentWord === "") {
+            
+            if (key === untypedPart[0]) {
+                typedPart += untypedPart[0];
+                untypedPart = untypedPart.substring(1);
+                
+                if (untypedPart === "") {
+                    // ★全問正解！ド派手な演出
                     score += 10;
                     scoreDisplay.textContent = `スコア: ${score}`;
-                    nextWord();
+                    document.body.classList.add('word-complete');
+                    setTimeout(() => {
+                        document.body.classList.remove('word-complete');
+                        nextWord();
+                    }, 400);
+                } else {
+                    // ★一文字正解！青い光
+                    updateDisplay();
+                    document.body.classList.add('correct-key');
+                    setTimeout(() => document.body.classList.remove('correct-key'), 100);
                 }
             }
         }
@@ -121,13 +139,11 @@
             alert(`終了！スコアは ${score} でした！`);
         }
 
-        // スマホ・PC共通の開始処理
         document.addEventListener('click', () => {
             mobileInput.focus();
             if (!isPlaying) startGame();
         });
 
-        // キー入力
         document.addEventListener('keydown', (e) => checkInput(e.key.toLowerCase()));
         mobileInput.addEventListener('input', (e) => {
             const val = e.target.value.slice(-1).toLowerCase();
