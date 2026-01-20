@@ -2,172 +2,137 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>タイピングゲーム</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宇宙最速タイピング</title>
     <style>
         body {
-            background-color: #2d3436;
-            color: white;
+            background-color: #000510; /* 深い宇宙の青 */
+            color: #00f2ff; /* ネオンブルー */
+            font-family: 'Courier New', Courier, monospace;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
             margin: 0;
-            /* こだわりの細い書体設定 */
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', sans-serif;
-            font-weight: 100; 
-            transition: background-color 0.1s;
             overflow: hidden;
         }
-        #info { font-size: 1.2rem; color: #b2bec3; margin-bottom: 10px; font-weight: 200; }
-        #timer { font-size: 1.2rem; color: #ffeaa7; margin-bottom: 5px; font-weight: 200; }
-        
+        #game-container {
+            text-align: center;
+            border: 2px solid #00f2ff;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 0 20px #00f2ff;
+            background: rgba(0, 0, 0, 0.8);
+        }
         #word-display {
-            font-size: 5.5rem;
-            letter-spacing: 0.1rem;
-            margin-bottom: 20px;
-            /* 文字をより細く見せる設定 */
-            -webkit-font-smoothing: antialiased;
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #00f2ff;
         }
-        .correct { color: #55efc4; }
-        .current { border-bottom: 2px solid #0984e3; }
-        
-        #score { font-size: 1.5rem; color: #fab1a0; font-weight: 200; }
-
-        #overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(45, 52, 54, 0.98);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
+        #timer {
+            font-size: 1.5rem;
+            color: #ff00de; /* ネオンピンク */
         }
-        button {
-            padding: 12px 50px;
-            font-size: 1.8rem;
-            background: none;
-            border: 1px solid #55efc4;
-            color: #55efc4;
-            cursor: pointer;
-            border-radius: 50px;
-            font-family: inherit;
-            font-weight: 100;
+        #score {
+            font-size: 1.2rem;
+            margin-top: 10px;
         }
-        button:hover { background: #55efc4; color: #2d3436; }
+        /* 正解したときのエフェクト */
+        .flash {
+            animation: blink 0.2s;
+        }
+        @keyframes blink {
+            0% { background-color: rgba(0, 242, 255, 0.3); }
+            100% { background-color: transparent; }
+        }
     </style>
 </head>
 <body>
 
-    <div id="overlay">
-        <h1 id="message" style="font-size: 3.5rem; margin-bottom: 30px; font-weight: 100;">Typing Game</h1>
-        <button id="start-btn">Start!</button>
+    <div id="game-container">
+        <div id="timer">残り時間: 30秒</div>
+        <div id="word-display">Tap to Start</div>
+        <div id="score">スコア: 0</div>
     </div>
 
-    <div id="timer">Time: 60s</div>
-    <div id="info">Type the word:</div>
-    <div id="word-display"></div>
-    <div id="score">Score: 0</div>
+    <input type="text" id="mobile-input" style="opacity: 0; position: absolute; top: 0;">
 
     <script>
-        // 厳選した60単語
-        const wordList = [
-            'apple', 'banana', 'cherry', 'orange', 'grape', 'lemon', 'melon', 'peach', 'strawberry', 'pineapple',
-            'coffee', 'bread', 'sushi', 'pizza', 'pasta', 'burger', 'cookie', 'chocolate', 'pancake', 'sandwich',
-            'cloud', 'system', 'network', 'browser', 'coding', 'program', 'monitor', 'keyboard', 'desktop', 'laptop',
-            'internet', 'password', 'database', 'software', 'hardware', 'security', 'website', 'windows', 'iphone', 'android',
-            'forest', 'mountain', 'ocean', 'river', 'island', 'flower', 'garden', 'animal', 'rabbit', 'elephant',
-            'school', 'station', 'library', 'hospital', 'airport', 'morning', 'evening', 'tomorrow', 'holiday', 'weekend'
+        const words = [
+            "apple", "banana", "galaxy", "supernova", "nebula", 
+            "javascript", "coding", "universe", "future", "star"
         ];
-
-        let targetWord = '';
-        let charIndex = 0;
+        
+        let currentWord = "";
         let score = 0;
-        let timeLeft = 60;
-        let timerId = null;
+        let timeLeft = 30;
         let isPlaying = false;
+        let timerId;
 
         const wordDisplay = document.getElementById('word-display');
-        const scoreDisplay = document.getElementById('score');
         const timerDisplay = document.getElementById('timer');
-        const overlay = document.getElementById('overlay');
-        const startBtn = document.getElementById('start-btn');
-        const message = document.getElementById('message');
+        const scoreDisplay = document.getElementById('score');
+        const mobileInput = document.getElementById('mobile-input');
 
-        startBtn.addEventListener('click', () => {
-            overlay.style.display = 'none';
-            score = 0;
-            timeLeft = 60;
+        function startGame() {
+            if (isPlaying) return;
             isPlaying = true;
-            scoreDisplay.innerText = `Score: ${score}`;
-            timerDisplay.innerText = `Time: 60s`;
-            timerDisplay.style.color = "#ffeaa7";
-            setWord();
-            startTimer();
-        });
-
-        function startTimer() {
-            if (timerId) clearInterval(timerId);
+            score = 0;
+            timeLeft = 30;
+            scoreDisplay.textContent = `スコア: ${score}`;
+            nextWord();
+            
             timerId = setInterval(() => {
                 timeLeft--;
-                if (timeLeft <= 30 && timeLeft > 0) {
-                    timerDisplay.innerText = `残り30秒！ (${timeLeft}s)`;
-                    timerDisplay.style.color = "#ff7675";
-                } else {
-                    timerDisplay.innerText = `Time: ${timeLeft}s`;
+                timerDisplay.textContent = `残り時間: ${timeLeft}秒`;
+                if (timeLeft <= 0) {
+                    endGame();
                 }
-                if (timeLeft <= 0) endGame();
             }, 1000);
+        }
+
+        function nextWord() {
+            currentWord = words[Math.floor(Math.random() * words.length)];
+            wordDisplay.textContent = currentWord;
+        }
+
+        function checkInput(key) {
+            if (!isPlaying) return;
+            if (key === currentWord[0]) {
+                currentWord = currentWord.substring(1);
+                wordDisplay.textContent = currentWord;
+                // 正解エフェクト
+                document.body.classList.add('flash');
+                setTimeout(() => document.body.classList.remove('flash'), 200);
+
+                if (currentWord === "") {
+                    score += 10;
+                    scoreDisplay.textContent = `スコア: ${score}`;
+                    nextWord();
+                }
+            }
         }
 
         function endGame() {
             clearInterval(timerId);
             isPlaying = false;
-            overlay.style.display = 'flex';
-            message.innerText = `終了！\nScore: ${score}`;
-            startBtn.innerText = 'Retry';
+            wordDisplay.textContent = "GAME OVER";
+            alert(`終了！スコアは ${score} でした！`);
         }
 
-        function setWord() {
-            targetWord = wordList[Math.floor(Math.random() * wordList.length)];
-            charIndex = 0;
-            renderWord();
-        }
+        // スマホ・PC共通の開始処理
+        document.addEventListener('click', () => {
+            mobileInput.focus();
+            if (!isPlaying) startGame();
+        });
 
-        function renderWord() {
-            let html = '';
-            for (let i = 0; i < targetWord.length; i++) {
-                if (i < charIndex) {
-                    html += `<span class="correct">${targetWord[i]}</span>`;
-                } else if (i === charIndex) {
-                    html += `<span class="current">${targetWord[i]}</span>`;
-                } else {
-                    html += `<span>${targetWord[i]}</span>`;
-                }
-            }
-            wordDisplay.innerHTML = html;
-        }
-
-        window.addEventListener('keydown', (e) => {
-            if (!isPlaying) return;
-            if (e.key.length !== 1) return;
-
-            if (e.key === targetWord[charIndex]) {
-                charIndex++;
-                if (charIndex === targetWord.length) {
-                    score += 100;
-                    scoreDisplay.innerText = `Score: ${score}`;
-                    setWord();
-                } else {
-                    renderWord();
-                }
-            } else {
-                document.body.style.backgroundColor = '#c0392b';
-                setTimeout(() => {
-                    document.body.style.backgroundColor = '#2d3436';
-                }, 100);
-            }
+        // キー入力
+        document.addEventListener('keydown', (e) => checkInput(e.key.toLowerCase()));
+        mobileInput.addEventListener('input', (e) => {
+            const val = e.target.value.slice(-1).toLowerCase();
+            checkInput(val);
+            e.target.value = '';
         });
     </script>
 </body>
